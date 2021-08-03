@@ -6,8 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased](https://github.com/open-telemetry/opentelemetry-python/compare/v1.4.0-0.23b0...HEAD)
+
+### Added
 - `opentelemetry-sdk-extension-aws` Add AWS resource detectors to extension package
   ([#586](https://github.com/open-telemetry/opentelemetry-python-contrib/pull/586))
+- `opentelemetry-instrumentation-asgi`, `opentelemetry-instrumentation-aiohttp-client`, `openetelemetry-instrumentation-fastapi`,        
+  `opentelemetry-instrumentation-starlette`, `opentelemetry-instrumentation-urllib`, `opentelemetry-instrumentation-urllib3` Added `request_hook` and `response_hook` callbacks 
+  ([#576](https://github.com/open-telemetry/opentelemetry-python-contrib/pull/576))
+
+### Changed
+- Enable explicit `excluded_urls` argument in `opentelemetry-instrumentation-flask`
+  ([#604](https://github.com/open-telemetry/opentelemetry-python-contrib/pull/604))
 
 ## [1.4.0-0.23b0](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.4.0-0.23b0) - 2021-07-21
 
@@ -57,6 +66,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ([#563](https://github.com/open-telemetry/opentelemetry-python-contrib/pull/563))
 - `opentelemetry-exporter-datadog` Datadog exporter should not use `unknown_service` as fallback resource service name.
   ([#570](https://github.com/open-telemetry/opentelemetry-python-contrib/pull/570))
+- Add support for the async extension of SQLAlchemy (>= 1.4)
+  ([#568](https://github.com/open-telemetry/opentelemetry-python-contrib/pull/568))
 
 ### Added
 - `opentelemetry-instrumentation-httpx` Add `httpx` instrumentation
