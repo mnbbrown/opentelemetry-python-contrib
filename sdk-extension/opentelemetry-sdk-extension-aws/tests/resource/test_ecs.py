@@ -33,7 +33,9 @@ MockEcsResourceAttributes = {
 
 class AwsEcsResourceDetectorTest(unittest.TestCase):
     @patch.dict(
-        "os.environ", {"ECS_CONTAINER_METADATA_URI": "mock-uri"}, clear=True,
+        "os.environ",
+        {"ECS_CONTAINER_METADATA_URI": "mock-uri"},
+        clear=True,
     )
     @patch(
         "socket.gethostname",
@@ -44,18 +46,18 @@ class AwsEcsResourceDetectorTest(unittest.TestCase):
         new_callable=mock_open,
         read_data=f"""14:name=systemd:/docker/{MockEcsResourceAttributes[ResourceAttributes.CONTAINER_ID]}
 13:rdma:/
-12:pids:/docker/{MockEcsResourceAttributes[ResourceAttributes.CONTAINER_ID]}
-11:hugetlb:/docker/{MockEcsResourceAttributes[ResourceAttributes.CONTAINER_ID]}
-10:net_prio:/docker/{MockEcsResourceAttributes[ResourceAttributes.CONTAINER_ID]}
-9:perf_event:/docker/{MockEcsResourceAttributes[ResourceAttributes.CONTAINER_ID]}
-8:net_cls:/docker/{MockEcsResourceAttributes[ResourceAttributes.CONTAINER_ID]}
-7:freezer:/docker/{MockEcsResourceAttributes[ResourceAttributes.CONTAINER_ID]}
-6:devices:/docker/{MockEcsResourceAttributes[ResourceAttributes.CONTAINER_ID]}
-5:memory:/docker/{MockEcsResourceAttributes[ResourceAttributes.CONTAINER_ID]}
-4:blkio:/docker/{MockEcsResourceAttributes[ResourceAttributes.CONTAINER_ID]}
-3:cpuacct:/docker/{MockEcsResourceAttributes[ResourceAttributes.CONTAINER_ID]}
-2:cpu:/docker/{MockEcsResourceAttributes[ResourceAttributes.CONTAINER_ID]}
-1:cpuset:/docker/{MockEcsResourceAttributes[ResourceAttributes.CONTAINER_ID]}
+12:pids:/docker/bogusContainerIdThatShouldNotBeOneSetBecauseTheFirstOneWasPicked
+11:hugetlb:/docker/bogusContainerIdThatShouldNotBeOneSetBecauseTheFirstOneWasPicked
+10:net_prio:/docker/bogusContainerIdThatShouldNotBeOneSetBecauseTheFirstOneWasPicked
+9:perf_event:/docker/bogusContainerIdThatShouldNotBeOneSetBecauseTheFirstOneWasPicked
+8:net_cls:/docker/bogusContainerIdThatShouldNotBeOneSetBecauseTheFirstOneWasPicked
+7:freezer:/docker/
+6:devices:/docker/bogusContainerIdThatShouldNotBeOneSetBecauseTheFirstOneWasPicked
+5:memory:/docker/bogusContainerIdThatShouldNotBeOneSetBecauseTheFirstOneWasPicked
+4:blkio:/docker/bogusContainerIdThatShouldNotBeOneSetBecauseTheFirstOneWasPicked
+3:cpuacct:/docker/bogusContainerIdThatShouldNotBeOneSetBecauseTheFirstOneWasPicked
+2:cpu:/docker/bogusContainerIdThatShouldNotBeOneSetBecauseTheFirstOneWasPicked
+1:cpuset:/docker/bogusContainerIdThatShouldNotBeOneSetBecauseTheFirstOneWasPicked
 """,
     )
     def test_simple_create(self, mock_open_function, mock_socket_gethostname):

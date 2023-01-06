@@ -17,16 +17,14 @@ from unittest import mock
 from unittest.mock import MagicMock
 
 import aiopg
-from aiopg.utils import (  # pylint: disable=no-name-in-module
-    _ContextManager,
-    _PoolAcquireContextManager,
-)
 
 import opentelemetry.instrumentation.aiopg
 from opentelemetry import trace as trace_api
 from opentelemetry.instrumentation.aiopg import AiopgInstrumentor, wrappers
 from opentelemetry.instrumentation.aiopg.aiopg_integration import (
     AiopgIntegration,
+    _ContextManager,
+    _PoolAcquireContextManager,
 )
 from opentelemetry.sdk import resources
 from opentelemetry.semconv.trace import SpanAttributes
@@ -68,7 +66,7 @@ class TestAiopgInstrumentor(TestBase):
         span = spans_list[0]
 
         # Check version and name in span's instrumentation info
-        self.check_span_instrumentation_info(
+        self.assertEqualSpanInstrumentationInfo(
             span, opentelemetry.instrumentation.aiopg
         )
 
@@ -97,7 +95,7 @@ class TestAiopgInstrumentor(TestBase):
                     span = spans_list[0]
 
                     # Check version and name in span's instrumentation info
-                    self.check_span_instrumentation_info(
+                    self.assertEqualSpanInstrumentationInfo(
                         span, opentelemetry.instrumentation.aiopg
                     )
 
@@ -118,7 +116,7 @@ class TestAiopgInstrumentor(TestBase):
         span = spans_list[0]
 
         # Check version and name in span's instrumentation info
-        self.check_span_instrumentation_info(
+        self.assertEqualSpanInstrumentationInfo(
             span, opentelemetry.instrumentation.aiopg
         )
 
@@ -149,7 +147,7 @@ class TestAiopgInstrumentor(TestBase):
                         span = spans_list[0]
 
                         # Check version and name in span's instrumentation info
-                        self.check_span_instrumentation_info(
+                        self.assertEqualSpanInstrumentationInfo(
                             span, opentelemetry.instrumentation.aiopg
                         )
 
@@ -507,6 +505,7 @@ class MockPool:
         self.server_host = server_host
         self.user = user
 
+    # pylint: disable=no-self-use
     async def release(self, conn):
         return conn
 
@@ -542,11 +541,11 @@ class MockConnection:
             database, server_port, server_host, user
         )
 
-    # pylint: disable=no-self-use
     def cursor(self):
         coro = self._cursor()
         return _ContextManager(coro)  # pylint: disable=no-value-for-parameter
 
+    # pylint: disable=no-self-use
     async def _cursor(self):
         return MockCursor()
 
@@ -585,6 +584,7 @@ class AiopgConnectionMock:
 
 
 class AiopgPoolMock:
+    # pylint: disable=no-self-use
     async def release(self, conn):
         return conn
 
@@ -592,6 +592,7 @@ class AiopgPoolMock:
         coro = self._acquire()
         return _PoolAcquireContextManager(coro, self)
 
+    # pylint: disable=no-self-use
     async def _acquire(self):
         return AiopgConnectionMock()
 

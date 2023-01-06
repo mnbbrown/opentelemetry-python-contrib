@@ -112,7 +112,7 @@ class TestClientProto(TestBase):
         self.assertIs(span.kind, trace.SpanKind.CLIENT)
 
         # Check version and name in span's instrumentation info
-        self.check_span_instrumentation_info(
+        self.assertEqualSpanInstrumentationInfo(
             span, opentelemetry.instrumentation.grpc
         )
 
@@ -126,11 +126,11 @@ class TestClientProto(TestBase):
         self.assertIs(span.kind, trace.SpanKind.CLIENT)
 
         # Check version and name in span's instrumentation info
-        self.check_span_instrumentation_info(
+        self.assertEqualSpanInstrumentationInfo(
             span, opentelemetry.instrumentation.grpc
         )
 
-        self.assert_span_has_attributes(
+        self.assertSpanHasAttributes(
             span,
             {
                 SpanAttributes.RPC_METHOD: "SimpleMethod",
@@ -152,11 +152,11 @@ class TestClientProto(TestBase):
         self.assertIs(span.kind, trace.SpanKind.CLIENT)
 
         # Check version and name in span's instrumentation info
-        self.check_span_instrumentation_info(
+        self.assertEqualSpanInstrumentationInfo(
             span, opentelemetry.instrumentation.grpc
         )
 
-        self.assert_span_has_attributes(
+        self.assertSpanHasAttributes(
             span,
             {
                 SpanAttributes.RPC_METHOD: "ServerStreamingMethod",
@@ -178,11 +178,11 @@ class TestClientProto(TestBase):
         self.assertIs(span.kind, trace.SpanKind.CLIENT)
 
         # Check version and name in span's instrumentation info
-        self.check_span_instrumentation_info(
+        self.assertEqualSpanInstrumentationInfo(
             span, opentelemetry.instrumentation.grpc
         )
 
-        self.assert_span_has_attributes(
+        self.assertSpanHasAttributes(
             span,
             {
                 SpanAttributes.RPC_METHOD: "ClientStreamingMethod",
@@ -206,11 +206,11 @@ class TestClientProto(TestBase):
         self.assertIs(span.kind, trace.SpanKind.CLIENT)
 
         # Check version and name in span's instrumentation info
-        self.check_span_instrumentation_info(
+        self.assertEqualSpanInstrumentationInfo(
             span, opentelemetry.instrumentation.grpc
         )
 
-        self.assert_span_has_attributes(
+        self.assertSpanHasAttributes(
             span,
             {
                 SpanAttributes.RPC_METHOD: "BidirectionalStreamingMethod",
@@ -230,7 +230,8 @@ class TestClientProto(TestBase):
         self.assertEqual(len(spans), 1)
         span = spans[0]
         self.assertIs(
-            span.status.status_code, trace.StatusCode.ERROR,
+            span.status.status_code,
+            trace.StatusCode.ERROR,
         )
 
     def test_error_stream_unary(self):
@@ -241,7 +242,8 @@ class TestClientProto(TestBase):
         self.assertEqual(len(spans), 1)
         span = spans[0]
         self.assertIs(
-            span.status.status_code, trace.StatusCode.ERROR,
+            span.status.status_code,
+            trace.StatusCode.ERROR,
         )
 
     def test_error_unary_stream(self):
@@ -252,7 +254,8 @@ class TestClientProto(TestBase):
         self.assertEqual(len(spans), 1)
         span = spans[0]
         self.assertIs(
-            span.status.status_code, trace.StatusCode.ERROR,
+            span.status.status_code,
+            trace.StatusCode.ERROR,
         )
 
     def test_error_stream_stream(self):
@@ -263,7 +266,8 @@ class TestClientProto(TestBase):
         self.assertEqual(len(spans), 1)
         span = spans[0]
         self.assertIs(
-            span.status.status_code, trace.StatusCode.ERROR,
+            span.status.status_code,
+            trace.StatusCode.ERROR,
         )
 
     def test_client_interceptor_trace_context_propagation(
@@ -273,9 +277,7 @@ class TestClientProto(TestBase):
         previous_propagator = get_global_textmap()
         try:
             set_global_textmap(MockTextMapPropagator())
-            interceptor = OpenTelemetryClientInterceptor(
-                trace._DefaultTracer()
-            )
+            interceptor = OpenTelemetryClientInterceptor(trace.NoOpTracer())
 
             carrier = tuple()
 

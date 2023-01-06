@@ -17,6 +17,8 @@ from pathlib import Path, PurePath
 DEFAULT_ALLSEP = " "
 DEFAULT_ALLFMT = "{rel}"
 
+NON_SRC_DIRS = ["build", "dist", "__pycache__", "lib", "venv", ".tox"]
+
 
 def unique(elems):
     seen = set()
@@ -31,14 +33,12 @@ subprocess_run = subprocess.run
 
 def extraargs_help(calledcmd):
     return cleandoc(
-        """
-        Additional arguments to pass on to  {}.
+        f"""
+        Additional arguments to pass on to  {calledcmd}.
 
         This is collected from any trailing arguments passed to `%(prog)s`.
         Use an initial `--` to separate them from regular arguments.
-        """.format(
-            calledcmd
-        )
+        """
     )
 
 
@@ -83,7 +83,7 @@ def parse_args(args=None):
         commands according to `format` and `--all`.
 
         Target paths are initially all Python distribution root paths
-        (as determined by the existence of setup.py, etc. files).
+        (as determined by the existence of pyproject.toml, etc. files).
         They are then augmented according to the section of the
         `PROJECT_ROOT/eachdist.ini` config file specified by the `--mode` option.
 
@@ -282,7 +282,7 @@ def find_targets_unordered(rootpath):
             continue
         if any(
             (subdir / marker).exists()
-            for marker in ("setup.py", "pyproject.toml")
+            for marker in ("pyproject.toml",)
         ):
             yield subdir
         else:
@@ -403,7 +403,7 @@ def execute_args(args):
     rootpath = find_projectroot()
     targets = find_targets(args.mode, rootpath)
     if not targets:
-        sys.exit("Error: No targets selected (root: {})".format(rootpath))
+        sys.exit(f"Error: No targets selected (root: {rootpath})")
 
     def fmt_for_path(fmt, path):
         return fmt.format(
@@ -419,7 +419,7 @@ def execute_args(args):
         )
         if result is not None and result.returncode not in args.allowexitcode:
             print(
-                "'{}' failed with code {}".format(cmd, result.returncode),
+                f"'{cmd}' failed with code {result.returncode}",
                 file=sys.stderr,
             )
             sys.exit(result.returncode)
@@ -474,7 +474,7 @@ def install_args(args):
     if args.with_test_deps:
         extras.append("test")
     if extras:
-        allfmt += "[{}]".format(",".join(extras))
+        allfmt += f"[{','.join(extras)}]"
     # note the trailing single quote, to close the quote opened above.
     allfmt += "'"
 
@@ -518,18 +518,19 @@ def lint_args(args):
 
     runsubprocess(
         args.dry_run,
-        ("black", ".") + (("--diff", "--check") if args.check_only else ()),
+        ("black", "--config", f"{rootdir}/pyproject.toml", ".")
+        + (("--diff", "--check") if args.check_only else ()),
         cwd=rootdir,
         check=True,
     )
     runsubprocess(
         args.dry_run,
-        ("isort", ".")
+        ("isort", "--settings-path", f"{rootdir}/.isort.cfg", ".")
         + (("--diff", "--check-only") if args.check_only else ()),
         cwd=rootdir,
         check=True,
     )
-    runsubprocess(args.dry_run, ("flake8", rootdir), check=True)
+    runsubprocess(args.dry_run, ("flake8", "--config", f"{rootdir}/.flake8", rootdir), check=True)
     execute_args(
         parse_subargs(
             args, ("exec", "pylint {}", "--all", "--mode", "lintroots")
@@ -546,13 +547,13 @@ def lint_args(args):
 def update_changelog(path, version, new_entry):
     unreleased_changes = False
     try:
-        with open(path) as changelog:
+        with open(path, encoding="utf-8") as changelog:
             text = changelog.read()
-            if "## [{}]".format(version) in text:
+            if f"## [{version}]" in text:
                 raise AttributeError(
-                    "{} already contans version {}".format(path, version)
+                    f"{path} already contains version {version}"
                 )
-        with open(path) as changelog:
+        with open(path, encoding="utf-8") as changelog:
             for line in changelog:
                 if line.startswith("## [Unreleased]"):
                     unreleased_changes = False
@@ -562,13 +563,13 @@ def update_changelog(path, version, new_entry):
                     unreleased_changes = True
 
     except FileNotFoundError:
-        print("file missing: {}".format(path))
+        print(f"file missing: {path}")
         return
 
     if unreleased_changes:
-        print("updating: {}".format(path))
+        print(f"updating: {path}")
         text = re.sub(r"## \[Unreleased\].*", new_entry, text)
-        with open(path, "w") as changelog:
+        with open(path, "w", encoding="utf-8") as changelog:
             changelog.write(text)
 
 
@@ -593,7 +594,17 @@ def update_changelogs(version):
 
 
 def find(name, path):
+    non_src_dirs = [os.path.join(path, nsd) for nsd in NON_SRC_DIRS]
+
+    def _is_non_src_dir(root) -> bool:
+        for nsd in non_src_dirs:
+            if root.startswith(nsd):
+                return True
+        return False
+
     for root, _, files in os.walk(path):
+        if _is_non_src_dir(root):
+            continue
         if name in files:
             return os.path.join(root, name)
     return None
@@ -617,10 +628,7 @@ def update_version_files(targets, version, packages):
     print("updating version.py files")
     targets = filter_packages(targets, packages)
     update_files(
-        targets,
-        "version.py",
-        "__version__ .*",
-        '__version__ = "{}"'.format(version),
+        targets, "version.py", "__version__ .*", f'__version__ = "{version}"',
     )
 
 
@@ -637,9 +645,9 @@ def update_dependencies(targets, version, packages):
 
         update_files(
             targets,
-            "setup.cfg",
-            r"({}.*)==(.*)".format(package_name),
-            r"\1== " + version,
+            "pyproject.toml",
+            fr"({package_name}.*)==(.*)",
+            r"\1== " + version + '",',
         )
 
 
@@ -648,17 +656,17 @@ def update_files(targets, filename, search, replace):
     for target in targets:
         curr_file = find(filename, target)
         if curr_file is None:
-            print("file missing: {}/{}".format(target, filename))
+            print(f"file missing: {target}/{filename}")
             continue
 
-        with open(curr_file) as _file:
+        with open(curr_file, encoding="utf-8") as _file:
             text = _file.read()
 
         if replace in text:
-            print("{} already contains {}".format(curr_file, replace))
+            print(f"{curr_file} already contains {replace}")
             continue
 
-        with open(curr_file, "w") as _file:
+        with open(curr_file, "w", encoding="utf-8") as _file:
             _file.write(re.sub(search, replace, text))
 
     if errors:
@@ -674,14 +682,17 @@ def release_args(args):
     cfg.read(str(find_projectroot() / "eachdist.ini"))
     versions = args.versions
     updated_versions = []
+
+    excluded = cfg["exclude_release"]["packages"].split()
+    targets = [target for target in targets if basename(target) not in excluded]
     for group in versions.split(","):
         mcfg = cfg[group]
         version = mcfg["version"]
         updated_versions.append(version)
         packages = None
         if "packages" in mcfg:
-            packages = mcfg["packages"].split()
-        print("update {} packages to {}".format(group, version))
+            packages = [pkg for pkg in mcfg["packages"].split() if pkg not in excluded]
+        print(f"update {group} packages to {version}")
         update_dependencies(targets, version, packages)
         update_version_files(targets, version, packages)
 
@@ -707,13 +718,16 @@ def format_args(args):
     format_dir = str(find_projectroot())
     if args.path:
         format_dir = os.path.join(format_dir, args.path)
-
+    root_dir = str(find_projectroot())
     runsubprocess(
-        args.dry_run, ("black", "."), cwd=format_dir, check=True,
+        args.dry_run,
+        ("black", "--config", f"{root_dir}/pyproject.toml", "."),
+        cwd=format_dir,
+        check=True,
     )
     runsubprocess(
         args.dry_run,
-        ("isort", "--profile", "black", "."),
+        ("isort", "--settings-path", f"{root_dir}/.isort.cfg", "--profile", "black", "."),
         cwd=format_dir,
         check=True,
     )
